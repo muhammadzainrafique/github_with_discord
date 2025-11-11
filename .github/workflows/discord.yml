@@ -1,0 +1,21 @@
+name: Send Commit to Discord
+
+on:
+  push:
+    branches:
+      - '*' # triggers on all branches
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Commit Info to Discord
+        uses: Ilshidur/action-discord@v1
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        with:
+          args: |
+            **${{ github.actor }}** pushed to **${{ github.ref_name }}**
+            **Message:** ${{ github.event.head_commit.message }}
+            **Files changed:** ${{ github.event.head_commit.added }} added, ${{ github.event.head_commit.modified }} modified, ${{ github.event.head_commit.removed }} removed
+            **Commit:** ${{ github.event.head_commit.url }}
