@@ -14,8 +14,11 @@ jobs:
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         with:
-          args: |
-            **${{ github.actor }}** pushed to **${{ github.ref_name }}**
-            **Message:** ${{ github.event.head_commit.message }}
-            **Files changed:** ${{ github.event.head_commit.added }} added, ${{ github.event.head_commit.modified }} modified, ${{ github.event.head_commit.removed }} removed
+          args: >
+            **${{ github.actor }}** pushed to **${{ github.ref_name }}**  
+            **Message:** ${{ github.event.head_commit.message }}  
+            **Files changed:**  
+            Added: ${{ join(github.event.head_commit.added, ', ') }}  
+            Modified: ${{ join(github.event.head_commit.modified, ', ') }}  
+            Removed: ${{ join(github.event.head_commit.removed, ', ') }}  
             **Commit:** ${{ github.event.head_commit.url }}
