@@ -1,24 +1,51 @@
-name: Send Commit to Discord
+name: Send Commit Embed to Discord
 
 on:
   push:
     branches:
-      - '*' # triggers on all branches
+      - '*'
 
 jobs:
   notify:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Send Commit Info to Discord
-        uses: Ilshidur/action-discord@master
+      - name: Send Discord Embed
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        with:
-          args: >
-            **${{ github.actor }}** pushed to **${{ github.ref_name }}**  
-            **Latest Commit Message:** ${{ github.event.commits[0].message }}  
-            **Author:** ${{ github.event.commits[0].author.name }}  
-            **Added:** ${{ github.event.commits[0].added }}  
-            **Modified:** ${{ github.event.commits[0].modified }}  
-            **Removed:** ${{ github.event.commits[0].removed }}  
-            **Commit URL:** https://github.com/${{ github.repository }}/commit/${{ github.event.commits[0].id }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          AVATAR: ${{ github.event.sender.avatar_url }}
+        run: |
+          commits=$(jq -c '.commits[]' <<< '${{ toJson(github.event.commits) }}')
+
+          DESCRIPTION=""
+          while IFS= read -r commit; do
+            msg=$(jq -r '.message' <<< "$commit")
+            url=$(jq -r '.url' <<< "$commit")
+            author=$(jq -r '.author.name' <<< "$commit")
+            DESCRIPTION="$DESCRIPTION**[$author]**: [$msg]($url)\n"
+          done <<< "$commits"
+
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d "{
+                 \"username\": \"GitHub Bot\",
+                 \"avatar_url\": \"https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png\",
+                 \"embeds\": [{
+                     \"title\": \"🚀 Push to $BRANCH\",
+                     \"color\": 5814783,
+                     \"author\": {
+                        \"name\": \"$ACTOR\",
+                        \"icon_url\": \"$AVATAR\",
+                        \"url\": \"https://github.com/$ACTOR\"
+                     },
+                     \"description\": \"$DESCRIPTION\",
+                     \"footer\": {
+                       \"text\": \"$REPO\"
+                     },
+                     \"timestamp\": \"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\"
+                 }]
+               }" \
+               "$DISCORD_WEBHOOK"
